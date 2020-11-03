@@ -1,0 +1,14 @@
+agents:
+-   name: agent1
+    start: [1, 1]
+-   name: agent2
+    start: [2, 2]
+potentialGoals:
+-   name: box1
+    points: [[1, 1], [1 ,3]]
+-   name: box2
+    points: [[0, 2], [2, 2]] 
+map:
+    dimention: [4, 4]
+    obstacles: 
+    - [0, 0]

@@ -454,34 +454,34 @@ class Environment {
     const Location *cur = m_goal == nullptr || s.index >= m_numw ? nullptr : &(m_goal->points[s.index]);
     neighbors.clear();
     {
-      State n(s.time + 1, s.x, s.y, s.index + cur != nullptr && s.x == cur->x && s.y == cur->y ? 0 : 1);
+      State n(s.time + 1, s.x, s.y, s.index + (cur != nullptr && s.x == cur->x && s.y == cur->y ? 0 : 1));
       if (stateValid(n) && transitionValid(s, n)) {
         neighbors.emplace_back(
             Neighbor<State, Action, int>(n, Action::Wait, n.index == m_numw ? 0 : 1));
       }
     }
     {
-      State n(s.time + 1, s.x - 1, s.y, s.index + cur != nullptr && s.x - 1 == cur->x && s.y == cur->y ? 0 : 1);
+      State n(s.time + 1, s.x - 1, s.y, s.index + (cur != nullptr && s.x - 1 == cur->x && s.y == cur->y ? 0 : 1));
       if (stateValid(n) && transitionValid(s, n)) {
         neighbors.emplace_back(
             Neighbor<State, Action, int>(n, Action::Left, 1));
       }
     }
     {
-      State n(s.time + 1, s.x + 1, s.y, s.index + cur != nullptr && s.x + 1 == cur->x && s.y == cur->y ? 0 : 1);
+      State n(s.time + 1, s.x + 1, s.y, s.index + (cur != nullptr && s.x + 1 == cur->x && s.y == cur->y ? 0 : 1));
       if (stateValid(n) && transitionValid(s, n)) {
         neighbors.emplace_back(
             Neighbor<State, Action, int>(n, Action::Right, 1));
       }
     }
     {
-      State n(s.time + 1, s.x, s.y + 1, s.index + cur != nullptr && s.x == cur->x && s.y + 1 == cur->y ? 0 : 1);
+      State n(s.time + 1, s.x, s.y + 1, s.index + (cur != nullptr && s.x == cur->x && s.y + 1 == cur->y ? 0 : 1));
       if (stateValid(n) && transitionValid(s, n)) {
         neighbors.emplace_back(Neighbor<State, Action, int>(n, Action::Up, 1));
       }
     }
     {
-      State n(s.time + 1, s.x, s.y - 1, s.index + cur != nullptr && s.x == cur->x && s.y - 1 == cur->y ? 0 : 1);
+      State n(s.time + 1, s.x, s.y - 1, s.index + (cur != nullptr && s.x == cur->x && s.y - 1 == cur->y ? 0 : 1));
       if (stateValid(n) && transitionValid(s, n)) {
         neighbors.emplace_back(
             Neighbor<State, Action, int>(n, Action::Down, 1));
