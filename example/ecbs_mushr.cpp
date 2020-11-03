@@ -318,7 +318,7 @@ class Environment {
         int cost = 0;
         if (!goal.points.empty()) {
           cost = m_heuristic.getValue(Location(startStates[i].x, startStates[i].y), goal.points[startStates[i].index]);
-          for (size_t j = startStates[i].index; j < goal.points.size() - 1; ++j) {
+          for (size_t j = startStates[i].index; j < numw - 1; ++j) {
             cost += m_heuristic.getValue(goal.points[j], goal.points[j + 1]);
           }
         }
@@ -330,8 +330,8 @@ class Environment {
 
   void setLowLevelContext(size_t agentIdx, const Constraints* constraints,
                           const Waypoints* task) {
-    std::
     assert(constraints);
+    // std::cout << "setLowLevel" << std::endl;
     m_agentIdx = agentIdx;
     m_goal = task;
     m_constraints = constraints;
@@ -370,6 +370,7 @@ class Environment {
       const State& s, int /*gScore*/,
       const std::vector<PlanResult<State, Action, int> >& solution) {
     int numConflicts = 0;
+    // std::cout << "focalState" << std::endl;
     for (size_t i = 0; i < solution.size(); ++i) {
       if (i != m_agentIdx && solution[i].states.size() > 0) {
         State state2 = getState(i, solution, s.time);
@@ -386,6 +387,7 @@ class Environment {
       const State& s1a, const State& s1b, int /*gScoreS1a*/, int /*gScoreS1b*/,
       const std::vector<PlanResult<State, Action, int> >& solution) {
     int numConflicts = 0;
+    // std::cout << "focaltrans" << std::endl;
     for (size_t i = 0; i < solution.size(); ++i) {
       if (i != m_agentIdx && solution[i].states.size() > 0) {
         State s2a = getState(i, solution, s1a.time);
@@ -448,8 +450,8 @@ class Environment {
     //   std::endl;
     // }
     
-    std::cout << "getNeighbots" << std::endl;
-    const Location *cur = m_goal == nullptr || s.index < m_numw ? nullptr : &(m_goal->points[s.index]);
+    // std::cout << "getNeighbots" << std::endl;
+    const Location *cur = m_goal == nullptr || s.index >= m_numw ? nullptr : &(m_goal->points[s.index]);
     neighbors.clear();
     {
       State n(s.time + 1, s.x, s.y, s.index + cur != nullptr && s.x == cur->x && s.y == cur->y ? 0 : 1);
@@ -490,6 +492,7 @@ class Environment {
   bool getFirstConflict(
       const std::vector<PlanResult<State, Action, int> >& solution,
       Conflict& result) {
+    std::cout << "getfirstconflict" << std::endl;
     int max_t = 0;
     for (const auto& sol : solution) {
       max_t = std::max<int>(max_t, sol.states.size());
@@ -542,6 +545,7 @@ class Environment {
 
   void createConstraintsFromConflict(
       const Conflict& conflict, std::map<size_t, Constraints>& constraints) {
+    std::cout << "createconstraints" << std::endl;
     if (conflict.type == Conflict::Vertex) {
       Constraints c1;
       c1.vertexConstraints.emplace(
@@ -593,6 +597,7 @@ class Environment {
   State getState(size_t agentIdx,
                  const std::vector<PlanResult<State, Action, int> >& solution,
                  size_t t) {
+    // std::cout << "getState" << std::endl;
     assert(agentIdx < solution.size());
     if (t < solution[agentIdx].states.size()) {
       return solution[agentIdx].states[t].first;
