@@ -15,8 +15,6 @@ using libMultiRobotPlanning::Neighbor;
 using libMultiRobotPlanning::PlanResult;
 using libMultiRobotPlanning::NextBestAssignment;
 
-#define NUM_WAYPOINT 2
-
 struct State {
   State(int time, int x, int y, int index) : time(time), x(x), y(y), index(index) {}
 
@@ -276,6 +274,7 @@ template <>
 struct hash<Waypoints> {
   size_t operator()(const Waypoints& s) const {
     size_t seed = 0;
+    std::cout << "hash " << s << std::endl;
     for (const auto& p: s.points) {
       boost::hash_combine(seed, p.x);
       boost::hash_combine(seed, p.y);
@@ -322,6 +321,7 @@ class Environment {
             cost += m_heuristic.getValue(goal.points[j], goal.points[j + 1]);
           }
         }
+        std::cout << cost << " " << goal << " " << startStates[i] << std::endl;
         m_assignment.setCost(i, goal, cost);
       }
     }
@@ -331,7 +331,7 @@ class Environment {
   void setLowLevelContext(size_t agentIdx, const Constraints* constraints,
                           const Waypoints* task) {
     assert(constraints);
-    // std::cout << "setLowLevel" << std::endl;
+    std::cout << "setLowLevel" << std::endl;
     m_agentIdx = agentIdx;
     m_goal = task;
     m_constraints = constraints;
@@ -353,11 +353,12 @@ class Environment {
   }
 
   int admissibleHeuristic(const State& s) {
-    if (m_goal != nullptr) {
+    if (m_goal != nullptr && s.index < m_numw) {
       int cost = m_heuristic.getValue(Location(s.x, s.y), m_goal->points[s.index]);
       for (size_t i = s.index; i < m_numw - 1; i++) {
         cost += m_heuristic.getValue(m_goal->points[i], m_goal->points[i + 1]);
       }
+      std::cout << cost << " " << *m_goal << " " << s << std::endl;
       return cost;
       //return m_heuristic.getValue(Location(s.x, s.y), *m_goal);
     } else {
@@ -370,7 +371,7 @@ class Environment {
       const State& s, int /*gScore*/,
       const std::vector<PlanResult<State, Action, int> >& solution) {
     int numConflicts = 0;
-    // std::cout << "focalState" << std::endl;
+    std::cout << "focalState" << std::endl;
     for (size_t i = 0; i < solution.size(); ++i) {
       if (i != m_agentIdx && solution[i].states.size() > 0) {
         State state2 = getState(i, solution, s.time);
@@ -387,7 +388,7 @@ class Environment {
       const State& s1a, const State& s1b, int /*gScoreS1a*/, int /*gScoreS1b*/,
       const std::vector<PlanResult<State, Action, int> >& solution) {
     int numConflicts = 0;
-    // std::cout << "focaltrans" << std::endl;
+    std::cout << "focaltrans" << std::endl;
     for (size_t i = 0; i < solution.size(); ++i) {
       if (i != m_agentIdx && solution[i].states.size() > 0) {
         State s2a = getState(i, solution, s1a.time);
@@ -450,38 +451,38 @@ class Environment {
     //   std::endl;
     // }
     
-    // std::cout << "getNeighbots" << std::endl;
+    std::cout << "getNeighbots" << std::endl;
     const Location *cur = m_goal == nullptr || s.index >= m_numw ? nullptr : &(m_goal->points[s.index]);
     neighbors.clear();
     {
-      State n(s.time + 1, s.x, s.y, s.index + (cur != nullptr && s.x == cur->x && s.y == cur->y ? 0 : 1));
+      State n(s.time + 1, s.x, s.y, s.index + ((cur != nullptr && s.x == cur->x && s.y == cur->y) ? 1 : 0));
       if (stateValid(n) && transitionValid(s, n)) {
         neighbors.emplace_back(
             Neighbor<State, Action, int>(n, Action::Wait, n.index == m_numw ? 0 : 1));
       }
     }
     {
-      State n(s.time + 1, s.x - 1, s.y, s.index + (cur != nullptr && s.x - 1 == cur->x && s.y == cur->y ? 0 : 1));
+      State n(s.time + 1, s.x - 1, s.y, s.index + ((cur != nullptr && s.x - 1 == cur->x && s.y == cur->y) ? 1 : 0));
       if (stateValid(n) && transitionValid(s, n)) {
         neighbors.emplace_back(
             Neighbor<State, Action, int>(n, Action::Left, 1));
       }
     }
     {
-      State n(s.time + 1, s.x + 1, s.y, s.index + (cur != nullptr && s.x + 1 == cur->x && s.y == cur->y ? 0 : 1));
+      State n(s.time + 1, s.x + 1, s.y, s.index + ((cur != nullptr && s.x + 1 == cur->x && s.y == cur->y) ? 1 : 0));
       if (stateValid(n) && transitionValid(s, n)) {
         neighbors.emplace_back(
             Neighbor<State, Action, int>(n, Action::Right, 1));
       }
     }
     {
-      State n(s.time + 1, s.x, s.y + 1, s.index + (cur != nullptr && s.x == cur->x && s.y + 1 == cur->y ? 0 : 1));
+      State n(s.time + 1, s.x, s.y + 1, s.index + ((cur != nullptr && s.x == cur->x && s.y + 1 == cur->y) ? 1 : 0));
       if (stateValid(n) && transitionValid(s, n)) {
         neighbors.emplace_back(Neighbor<State, Action, int>(n, Action::Up, 1));
       }
     }
     {
-      State n(s.time + 1, s.x, s.y - 1, s.index + (cur != nullptr && s.x == cur->x && s.y - 1 == cur->y ? 0 : 1));
+      State n(s.time + 1, s.x, s.y - 1, s.index + ((cur != nullptr && s.x == cur->x && s.y - 1 == cur->y) ? 1 : 0));
       if (stateValid(n) && transitionValid(s, n)) {
         neighbors.emplace_back(
             Neighbor<State, Action, int>(n, Action::Down, 1));
