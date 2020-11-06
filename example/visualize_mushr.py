@@ -11,7 +11,7 @@ import matplotlib.animation as manimation
 import argparse
 import math
 
-Colors = ['orange']#, 'blue', 'green']
+Colors = ['orange', 'blue', 'green', 'pink']
 
 
 class Animation:
@@ -53,13 +53,10 @@ class Animation:
     # create agents:
     self.T = 0
     # draw goals first
-    for d, i in zip(map["agents"], range(0, len(map["agents"]))):
-      if "goal" in d:
-        goals = [d["goal"]]
-      if "potentialGoals" in d:
-        goals = [goal for goal in d["potentialGoals"]]
-      for goal in goals:
-        self.patches.append(Rectangle((goal[0] - 0.25, goal[1] - 0.25), 0.5, 0.5, facecolor=Colors[i%len(Colors)], edgecolor='black', alpha=0.5))
+    for d, i in zip(map["potentialGoals"], range(0, len(map["potentialGoals"]))):
+      for j, point in enumerate(d["points"], start=1):
+        self.patches.append(Rectangle((point[0] - 0.25, point[1] - 0.25), 0.5, 0.5, facecolor=Colors[i%len(Colors)], edgecolor='black', alpha=0.5))
+        self.artists.append(self.ax.text(point[0], point[1], str(j), ha='center', va='center', zorder=0))
 
     for d, i in zip(map["agents"], range(0, len(map["agents"]))):
       name = d["name"]

@@ -317,8 +317,10 @@ class Environment {
         int cost = 0;
         if (!goal.points.empty()) {
           cost = m_heuristic.getValue(Location(startStates[i].x, startStates[i].y), goal.points[startStates[i].index]);
+          std::cout << cost << " ";
           for (size_t j = startStates[i].index; j < numw - 1; ++j) {
             cost += m_heuristic.getValue(goal.points[j], goal.points[j + 1]);
+            std::cout << cost << " ";
           }
         }
         std::cout << cost << " " << goal << " " << startStates[i] << std::endl;
@@ -355,8 +357,10 @@ class Environment {
   int admissibleHeuristic(const State& s) {
     if (m_goal != nullptr && s.index < m_numw) {
       int cost = m_heuristic.getValue(Location(s.x, s.y), m_goal->points[s.index]);
+      std::cout << cost << " ";
       for (size_t i = s.index; i < m_numw - 1; i++) {
         cost += m_heuristic.getValue(m_goal->points[i], m_goal->points[i + 1]);
+        std::cout << cost << " ";
       }
       std::cout << cost << " " << *m_goal << " " << s << std::endl;
       return cost;
