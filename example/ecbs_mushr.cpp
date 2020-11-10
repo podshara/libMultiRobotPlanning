@@ -56,6 +56,7 @@ enum class Action {
   Left,
   Right,
   Wait,
+  Pick,
 };
 
 std::ostream& operator<<(std::ostream& os, const Action& a) {
@@ -74,6 +75,9 @@ std::ostream& operator<<(std::ostream& os, const Action& a) {
       break;
     case Action::Wait:
       os << "Wait";
+      break;
+    case Action::Pick:
+      os << "Pick";
       break;
   }
   return os;
@@ -274,7 +278,6 @@ template <>
 struct hash<Waypoints> {
   size_t operator()(const Waypoints& s) const {
     size_t seed = 0;
-    std::cout << "hash " << s << std::endl;
     for (const auto& p: s.points) {
       boost::hash_combine(seed, p.x);
       boost::hash_combine(seed, p.y);
@@ -317,13 +320,13 @@ class Environment {
         int cost = 0;
         if (!goal.points.empty()) {
           cost = m_heuristic.getValue(Location(startStates[i].x, startStates[i].y), goal.points[startStates[i].index]);
-          std::cout << cost << " ";
+          // std::cout << cost << " ";
           for (size_t j = startStates[i].index; j < numw - 1; ++j) {
             cost += m_heuristic.getValue(goal.points[j], goal.points[j + 1]);
             std::cout << cost << " ";
           }
         }
-        std::cout << cost << " " << goal << " " << startStates[i] << std::endl;
+        // std::cout << cost << " " << goal << " " << startStates[i] << std::endl;
         m_assignment.setCost(i, goal, cost);
       }
     }
@@ -357,12 +360,12 @@ class Environment {
   int admissibleHeuristic(const State& s) {
     if (m_goal != nullptr && s.index < m_numw) {
       int cost = m_heuristic.getValue(Location(s.x, s.y), m_goal->points[s.index]);
-      std::cout << cost << " ";
+      // std::cout << cost << " ";
       for (size_t i = s.index; i < m_numw - 1; i++) {
         cost += m_heuristic.getValue(m_goal->points[i], m_goal->points[i + 1]);
-        std::cout << cost << " ";
+        // std::cout << cost << " ";
       }
-      std::cout << cost << " " << *m_goal << " " << s << std::endl;
+      // std::cout << cost << " " << *m_goal << " " << s << std::endl;
       return cost;
       //return m_heuristic.getValue(Location(s.x, s.y), *m_goal);
     } else {
@@ -377,10 +380,15 @@ class Environment {
     int numConflicts = 0;
     std::cout << "focalState" << std::endl;
     for (size_t i = 0; i < solution.size(); ++i) {
-      if (i != m_agentIdx && solution[i].states.size() > 0) {
-        State state2 = getState(i, solution, s.time);
-        if (s.equalExceptTime(state2)) {
-          ++numConflicts;
+      if (i != m_agentIdx) {
+        if (solution[i].states.size() > 0) { 
+          State state2 = getState(i, solution, s.time);
+          State p = getPickUp(solution[i], 0);
+          if (s.equalExceptTime(state2)) {
+            ++numConflicts;
+          } else if(s.time < p.time && s.equalExceptTime(p)) {
+            ++numConflicts;
+          }
         }
       }
     }
@@ -397,7 +405,7 @@ class Environment {
       if (i != m_agentIdx && solution[i].states.size() > 0) {
         State s2a = getState(i, solution, s1a.time);
         State s2b = getState(i, solution, s1b.time);
-        if (s1a.equalExceptTime(s2b) && s1b.equalExceptTime(s2a)) {
+        if (s1a.equalExceptTime(s2b) && s1b.equalExceptTime(s2a)) { 
           ++numConflicts;
         }
       }
@@ -411,8 +419,10 @@ class Environment {
     int numConflicts = 0;
 
     int max_t = 0;
+    std::vector<State> pickup; 
     for (size_t i = 0; i < solution.size(); ++i) {
       max_t = std::max<int>(max_t, solution[i].states.size() - 1);
+      pickup.push_back(getPickUp(solution[i], 0));
     }
 
     for (int t = 0; t < max_t; ++t) {
@@ -423,6 +433,16 @@ class Environment {
           State state2 = getState(j, solution, t);
           if (state1.equalExceptTime(state2)) {
             ++numConflicts;
+          }
+        }
+      }
+      for (size_t i = 0; i < solution.size(); ++i) {
+        for (size_t j = 0; j < solution.size(); ++j) {
+          if (i != j) {
+            State state2 = getState(j, solution, t);
+            if (t < pickup[i].time && pickup[i].equalExceptTime(state2)) {
+              ++numConflicts;
+            }
           }
         }
       }
@@ -499,8 +519,14 @@ class Environment {
       Conflict& result) {
     std::cout << "getfirstconflict" << std::endl;
     int max_t = 0;
+    std::vector<State> pickup; 
     for (const auto& sol : solution) {
       max_t = std::max<int>(max_t, sol.states.size());
+      pickup.push_back(getPickUp(sol, 0));
+    }
+    std::cout << "pick up" << std::endl;
+    for (const auto& p : pickup) {
+      std::cout << p << std::endl;
     }
 
     for (int t = 0; t < max_t; ++t) {
@@ -519,6 +545,24 @@ class Environment {
             // std::cout << "VC " << t << "," << state1.x << "," << state1.y <<
             // std::endl;
             return true;
+          }
+        }
+      }
+      // check slider collisions
+      for (size_t i = 0; i < solution.size(); ++i) {
+        for (size_t j = 0; j < solution.size(); ++j) {
+          if (i != j) {
+            State state2 = getState(j, solution, t);
+            if (t < pickup[i].time && pickup[i].equalExceptTime(state2)) {
+              std::cout << "box" << t << "," << state2.x << "," << state2.y << std::endl;
+              result.time = t;
+              result.agent1 = i;
+              result.agent2 = j;
+              result.type = Conflict::Vertex;
+              result.x1 = state2.x;
+              result.y1 = state2.y;
+              return true;
+            }
           }
         }
       }
@@ -609,6 +653,18 @@ class Environment {
     }
     assert(!solution[agentIdx].states.empty());
     return solution[agentIdx].states.back().first;
+  }
+
+  State getPickUp(const PlanResult<State, Action, int>& solution,
+                  size_t index) {
+    assert(!solution.states.empty());
+    // TODO: could be implement in O(log n) using b search
+    for (const auto& state: solution.states) {
+      if (state.first.index == index + 1) {
+        return state.first;
+      }
+    }
+    std::cerr << "Wrong solution format" << std::endl;
   }
 
   bool stateValid(const State& s) {
@@ -722,6 +778,7 @@ int main(int argc, char* argv[]) {
     std::cout << "Planning successful! " << std::endl;
     int64_t cost = 0;
     int64_t makespan = 0;
+    int is_pickup = 0;
     for (const auto& s : solution) {
       cost += s.cost;
       makespan = std::max<int64_t>(makespan, s.cost);
@@ -745,12 +802,20 @@ int main(int argc, char* argv[]) {
       // }
       // std::cout << solution[a].states.back().second << ": " <<
       // solution[a].states.back().first << std::endl;
-
+      is_pickup = 0;
       out << "  agent" << a << ":" << std::endl;
-      for (const auto& state : solution[a].states) {
-        out << "    - x: " << state.first.x << std::endl
-            << "      y: " << state.first.y << std::endl
-            << "      t: " << state.second << std::endl;
+      for (size_t i = 0; i < solution[a].states.size(); i++) {
+        if (!is_pickup) {
+          if (solution[a].actions[i+1].first == Action::Pick) {
+            is_pickup = 1;
+          }
+          out << "    - x: " << solution[a].states[i].first.x << std::endl
+              << "      y: " << solution[a].states[i].first.y << std::endl
+              << "      t: " << solution[a].states[i].second << std::endl
+              << "      p: " << is_pickup << std::endl;
+        } else {
+          is_pickup = 0;
+        }
       }
     }
   } else {
