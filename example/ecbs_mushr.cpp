@@ -56,7 +56,6 @@ enum class Action {
   Left,
   Right,
   Wait,
-  Pick,
 };
 
 std::ostream& operator<<(std::ostream& os, const Action& a) {
@@ -75,9 +74,6 @@ std::ostream& operator<<(std::ostream& os, const Action& a) {
       break;
     case Action::Wait:
       os << "Wait";
-      break;
-    case Action::Pick:
-      os << "Pick";
       break;
   }
   return os;
@@ -778,7 +774,6 @@ int main(int argc, char* argv[]) {
     std::cout << "Planning successful! " << std::endl;
     int64_t cost = 0;
     int64_t makespan = 0;
-    int is_pickup = 0;
     for (const auto& s : solution) {
       cost += s.cost;
       makespan = std::max<int64_t>(makespan, s.cost);
@@ -802,20 +797,11 @@ int main(int argc, char* argv[]) {
       // }
       // std::cout << solution[a].states.back().second << ": " <<
       // solution[a].states.back().first << std::endl;
-      is_pickup = 0;
       out << "  agent" << a << ":" << std::endl;
       for (size_t i = 0; i < solution[a].states.size(); i++) {
-        if (!is_pickup) {
-          if (solution[a].actions[i+1].first == Action::Pick) {
-            is_pickup = 1;
-          }
-          out << "    - x: " << solution[a].states[i].first.x << std::endl
-              << "      y: " << solution[a].states[i].first.y << std::endl
-              << "      t: " << solution[a].states[i].second << std::endl
-              << "      p: " << is_pickup << std::endl;
-        } else {
-          is_pickup = 0;
-        }
+        out << "    - x: " << solution[a].states[i].first.x << std::endl
+            << "      y: " << solution[a].states[i].first.y << std::endl
+            << "      t: " << solution[a].states[i].second << std::endl;
       }
     }
   } else {
