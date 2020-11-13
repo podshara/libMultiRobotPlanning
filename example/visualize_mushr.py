@@ -55,8 +55,9 @@ class Animation:
     # draw goals first
     for d, i in zip(map["potentialGoals"], range(0, len(map["potentialGoals"]))):
       for j, point in enumerate(d["points"], start=1):
-        self.patches.append(Rectangle((point[0] - 0.25, point[1] - 0.25), 0.5, 0.5, facecolor=Colors[i%len(Colors)], edgecolor='black', alpha=0.5))
-        self.artists.append(self.ax.text(point[0], point[1], str(j), ha='center', va='center', zorder=0))
+        if point[0] != -1:
+          self.patches.append(Rectangle((point[0] - 0.25, point[1] - 0.25), 0.5, 0.5, facecolor=Colors[i%len(Colors)], edgecolor='black', alpha=0.5))
+          self.artists.append(self.ax.text(point[0], point[1], str(j), ha='center', va='center', zorder=0))
 
     for d, i in zip(map["agents"], range(0, len(map["agents"]))):
       name = d["name"]

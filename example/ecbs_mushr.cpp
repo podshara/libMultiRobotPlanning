@@ -234,7 +234,7 @@ struct Location {
   friend std::ostream& operator<<(std::ostream& os, const Location& c) {
     return os << "(" << c.x << "," << c.y << ")";
   }
-};
+} DUMMY_LOCATION(-1, -1);
 
 namespace std {
 template <>
@@ -314,12 +314,12 @@ class Environment {
     for (size_t i = 0; i < startStates.size(); ++i) {
       for (const auto& goal : goals) {
         int cost = 0;
-        if (!goal.points.empty()) {
+        if (!goal.points.empty() && goal.points[0].x != -1) {
           cost = m_heuristic.getValue(Location(startStates[i].x, startStates[i].y), goal.points[startStates[i].index]);
           // std::cout << cost << " ";
           for (size_t j = startStates[i].index; j < numw - 1; ++j) {
             cost += m_heuristic.getValue(goal.points[j], goal.points[j + 1]);
-            std::cout << cost << " ";
+            // std::cout << cost << " ";
           }
         }
         // std::cout << cost << " " << goal << " " << startStates[i] << std::endl;
@@ -332,7 +332,7 @@ class Environment {
   void setLowLevelContext(size_t agentIdx, const Constraints* constraints,
                           const Waypoints* task) {
     assert(constraints);
-    std::cout << "setLowLevel" << std::endl;
+    // std::cout << "setLowLevel" << std::endl;
     m_agentIdx = agentIdx;
     m_goal = task;
     m_constraints = constraints;
@@ -355,6 +355,9 @@ class Environment {
 
   int admissibleHeuristic(const State& s) {
     if (m_goal != nullptr && s.index < m_numw) {
+      if (m_goal->points[0].x == -1) {
+        return 0;
+      }
       int cost = m_heuristic.getValue(Location(s.x, s.y), m_goal->points[s.index]);
       // std::cout << cost << " ";
       for (size_t i = s.index; i < m_numw - 1; i++) {
@@ -374,7 +377,7 @@ class Environment {
       const State& s, int /*gScore*/,
       const std::vector<PlanResult<State, Action, int> >& solution) {
     int numConflicts = 0;
-    std::cout << "focalState" << std::endl;
+    // std::cout << "focalState" << std::endl;
     for (size_t i = 0; i < solution.size(); ++i) {
       if (i != m_agentIdx) {
         if (solution[i].states.size() > 0) { 
@@ -396,7 +399,7 @@ class Environment {
       const State& s1a, const State& s1b, int /*gScoreS1a*/, int /*gScoreS1b*/,
       const std::vector<PlanResult<State, Action, int> >& solution) {
     int numConflicts = 0;
-    std::cout << "focaltrans" << std::endl;
+    // std::cout << "focaltrans" << std::endl;
     for (size_t i = 0; i < solution.size(); ++i) {
       if (i != m_agentIdx && solution[i].states.size() > 0) {
         State s2a = getState(i, solution, s1a.time);
@@ -471,14 +474,14 @@ class Environment {
     //   std::endl;
     // }
     
-    std::cout << "getNeighbots" << std::endl;
+    // std::cout << "getNeighbots" << std::endl;
     const Location *cur = m_goal == nullptr || s.index >= m_numw ? nullptr : &(m_goal->points[s.index]);
     neighbors.clear();
     {
-      State n(s.time + 1, s.x, s.y, s.index + ((cur != nullptr && s.x == cur->x && s.y == cur->y) ? 1 : 0));
+      State n(s.time + 1, s.x, s.y, s.index + ((cur != nullptr && s.x == cur->x && s.y == cur->y) ? 1 : (cur->x == -1 ? m_numw : 0)));
       if (stateValid(n) && transitionValid(s, n)) {
         neighbors.emplace_back(
-            Neighbor<State, Action, int>(n, Action::Wait, n.index == m_numw ? 0 : 1));
+            Neighbor<State, Action, int>(n, Action::Wait, (n.index == m_numw) ? 0 : 1));
       }
     }
     {
@@ -550,7 +553,7 @@ class Environment {
           if (i != j) {
             State state2 = getState(j, solution, t);
             if (t < pickup[i].time && pickup[i].equalExceptTime(state2)) {
-              std::cout << "box" << t << "," << state2.x << "," << state2.y << std::endl;
+              // std::cout << "box" << t << "," << state2.x << "," << state2.y << std::endl;
               result.time = t;
               result.agent1 = i;
               result.agent2 = j;
@@ -660,7 +663,8 @@ class Environment {
         return state.first;
       }
     }
-    std::cerr << "Wrong solution format" << std::endl;
+    return solution.states[0].first;
+    //std::cerr << "Wrong solution format" << std::endl;
   }
 
   bool stateValid(const State& s) {
@@ -757,6 +761,15 @@ int main(int argc, char* argv[]) {
       ls.emplace_back(waypoint[0].as<int>(), waypoint[1].as<int>());
     }
     goals.emplace_back(ls);
+  }
+
+  std::cout << "agents:" << startStates.size() << " task:" << goals.size() << std::endl;
+  int m_s = (int)startStates.size();
+  int m_g = (int)goals.size();
+  for (int i = 0; i < m_s - m_g; i++) {
+    std::vector<Location> dummy_locations;
+    dummy_locations.emplace_back(-1, i);
+    goals.emplace_back(dummy_locations);
   }
 
   Environment mapf(dimx, dimy, 2, obstacles, startStates, goals,
