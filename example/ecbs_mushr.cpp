@@ -1,5 +1,6 @@
 #include <fstream>
 #include <iostream>
+#include <algorithm>
 
 #include <boost/functional/hash.hpp>
 #include <boost/program_options.hpp>
@@ -701,6 +702,11 @@ class Environment {
   std::vector<Waypoints> m_waypoints;
 };
 
+// util
+bool goal_compare(Waypoints & obj, int x, int y) {
+  return obj.points.back().x == x && obj.points.back().y == y;
+}
+
 int main(int argc, char* argv[]) {
   namespace po = boost::program_options;
   // Declare the supported options.
@@ -772,49 +778,101 @@ int main(int argc, char* argv[]) {
     goals.emplace_back(dummy_locations);
   }
 
-  Environment mapf(dimx, dimy, 2, obstacles, startStates, goals,
-                   maxTaskAssignments);
-  ECBSTA<State, Action, int, Conflict, Constraints, Waypoints,
-         Environment>
-      cbs(mapf, w);
+  // stat param
+  int high_ex = 0, low_ex = 0, num_ta = 0;
+  int64_t cost = 0;
+  int64_t makespan = 0;
+  bool success = true;
+  Timer timer;
+  std::vector<int> startTime;
   std::vector<PlanResult<State, Action, int> > solution;
 
-  Timer timer;
-  bool success = cbs.search(startStates, solution);
-  timer.stop();
-
-  if (success) {
-    std::cout << "Planning successful! " << std::endl;
-    int64_t cost = 0;
-    int64_t makespan = 0;
+  startTime.push_back(0);
+  if (goals.size() == startStates.size()) {
+    Environment mapf(dimx, dimy, 2, obstacles, startStates, goals,
+                    maxTaskAssignments);
+    ECBSTA<State, Action, int, Conflict, Constraints, Waypoints,
+          Environment>
+        cbs(mapf, w);
+    timer.reset();
+    success = cbs.search(startStates, solution);
+    timer.stop();
+    high_ex += mapf.highLevelExpanded();
+    low_ex += mapf.lowLevelExpanded();
+    num_ta += mapf.numTaskAssignments();
     for (const auto& s : solution) {
       cost += s.cost;
       makespan = std::max<int64_t>(makespan, s.cost);
     }
+    startTime.push_back(makespan);
+  }
+  else {
+    timer.reset();
+    while (goals.size() > 0 && success) {
+      Environment mapf(dimx, dimy, 2, obstacles, startStates, goals,
+                      maxTaskAssignments);
+      ECBSTA<State, Action, int, Conflict, Constraints, Waypoints,
+            Environment>
+          cbs(mapf, w);
+      std::vector<PlanResult<State, Action, int> > sub_solution;
+      success &= cbs.search(startStates, sub_solution);
+      std::cout << sub_solution.size() << std::endl;
+      high_ex += mapf.highLevelExpanded();
+      low_ex += mapf.lowLevelExpanded();
+      num_ta += mapf.numTaskAssignments();
+      std::cout << "finish" << std::endl;
+      startStates.clear();
 
+      std::vector<Waypoints>::iterator it;
+      int ct = 0;
+      int sub_makespan = 0;
+      for (const auto& s : sub_solution) {
+        State last = s.states.back().first;
+        it = std::find_if(goals.begin(), goals.end(), 
+          std::bind(goal_compare, std::placeholders::_1, last.x, last.y));
+        if (it != goals.end()) {
+          ct++;
+          goals.erase(it);
+        }
+        startStates.emplace_back(State(0, last.x, last.y, 0));
+        cost += s.cost;
+        sub_makespan = std::max<int64_t>(sub_makespan, s.cost);
+      }
+      makespan += sub_makespan;
+      startTime.push_back(makespan);
+      std::cout << makespan << std::endl;
+      std::cout << "find goal " << ct << " remain " << goals.size() << std::endl;
+      solution.insert(solution.end(), sub_solution.begin(), sub_solution.end());
+    }
+    timer.stop();
+  }
+
+  if (success) {
+    std::cout << "Planning successful! " << std::endl;
     std::ofstream out(outputFile);
     out << "statistics:" << std::endl;
     out << "  cost: " << cost << std::endl;
     out << "  makespan: " << makespan << std::endl;
     out << "  runtime: " << timer.elapsedSeconds() << std::endl;
-    out << "  highLevelExpanded: " << mapf.highLevelExpanded() << std::endl;
-    out << "  lowLevelExpanded: " << mapf.lowLevelExpanded() << std::endl;
-    out << "  numTaskAssignments: " << mapf.numTaskAssignments() << std::endl;
+    out << "  highLevelExpanded: " << high_ex << std::endl;
+    out << "  lowLevelExpanded: " << low_ex << std::endl;
+    out << "  numTaskAssignments: " << num_ta << std::endl;
     out << "schedule:" << std::endl;
-    for (size_t a = 0; a < solution.size(); ++a) {
-      // std::cout << "Solution for: " << a << std::endl;
-      // for (size_t i = 0; i < solution[a].actions.size(); ++i) {
-      //   std::cout << solution[a].states[i].second << ": " <<
-      //   solution[a].states[i].first << "->" << solution[a].actions[i].first
-      //   << "(cost: " << solution[a].actions[i].second << ")" << std::endl;
-      // }
-      // std::cout << solution[a].states.back().second << ": " <<
-      // solution[a].states.back().first << std::endl;
+    for (int64_t a = 0; a < m_s; ++a) {
       out << "  agent" << a << ":" << std::endl;
-      for (size_t i = 0; i < solution[a].states.size(); i++) {
-        out << "    - x: " << solution[a].states[i].first.x << std::endl
-            << "      y: " << solution[a].states[i].first.y << std::endl
-            << "      t: " << solution[a].states[i].second << std::endl;
+      for (int t = 0; t < startTime.size() - 1; t++) {
+        int j = t * m_s + a;
+        for (size_t i = 0; i < solution[j].states.size(); i++) {
+          //if (i > solution[a].states[i].second) {continue;}
+          out << "    - x: " << solution[j].states[i].first.x << std::endl
+              << "      y: " << solution[j].states[i].first.y << std::endl
+              << "      t: " << solution[j].states[i].second + startTime[t] << std::endl;
+        }
+        for (size_t i = solution[j].states.back().second + startTime[t] + 1; i <= startTime[t + 1]; i++) {
+          out << "    - x: " << solution[j].states.back().first.x << std::endl
+              << "      y: " << solution[j].states.back().first.y << std::endl
+              << "      t: " << i << std::endl;
+        }
       }
     }
   } else {
