@@ -1,3 +1,6 @@
-build/
+.vscode
+libmultirobotplanning/build/
+libmultirobotplanning/.python-version
+libmultirobotplanning/output/
 __pycache__/
 *.kdev4*
