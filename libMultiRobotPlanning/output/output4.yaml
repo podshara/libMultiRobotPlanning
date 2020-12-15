@@ -1,0 +1,74 @@
+statistics:
+  cost: 14
+  makespan: 7
+  runtime: 0.00435291
+  highLevelExpanded: 2
+  lowLevelExpanded: 40
+  numTaskAssignments: 1
+schedule:
+  agent0:
+    - x: 1
+      y: 4
+      t: 0
+      p: 1
+    - x: 2
+      y: 4
+      t: 1
+      p: 0
+    - x: 2
+      y: 4
+      t: 2
+      p: 0
+    - x: 2
+      y: 4
+      t: 3
+      p: 0
+    - x: 3
+      y: 4
+      t: 4
+      p: 0
+    - x: 4
+      y: 4
+      t: 5
+      p: 0
+    - x: 5
+      y: 4
+      t: 6
+      p: 1
+    - x: 6
+      y: 4
+      t: 7
+      p: 0
+  agent1:
+    - x: 3
+      y: 7
+      t: 0
+      p: 0
+    - x: 3
+      y: 6
+      t: 1
+      p: 0
+    - x: 3
+      y: 5
+      t: 2
+      p: 1
+    - x: 3
+      y: 4
+      t: 3
+      p: 0
+    - x: 3
+      y: 3
+      t: 4
+      p: 0
+    - x: 3
+      y: 2
+      t: 5
+      p: 0
+    - x: 3
+      y: 1
+      t: 6
+      p: 1
+    - x: 3
+      y: 0
+      t: 7
+      p: 0

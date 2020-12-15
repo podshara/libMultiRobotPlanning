@@ -1,0 +1,13 @@
+<launch>
+    <node pkg="mushr_coordination" type="mushr_coordination" name="mushr_coordination">
+        <param name="minx" value="-20"/>
+        <param name="miny" value="-20"/>
+        <param name="maxx" value="20"/>
+        <param name="maxy" value="20"/>
+        <param name="w" value="1.0"/>
+        <!--param name="maxTaskAssignments" value="$(arg a)"/-->
+        <param name="scale" value="1.0"/>
+        <param name="numAgent" value="2"/>
+        <param name="sim" value="true"/>
+    </node>
+</launch>
