@@ -119,7 +119,25 @@ add_executable(cbs
 target_link_libraries(cbs
   ${Boost_LIBRARIES}
   yaml-cpp
-)
+)# set(ALL_SOURCE_FILES
+#   libMultiRobotPlanning/include/libMultiRobotPlanning/a_star.hpp
+#   libMultiRobotPlanning/include/libMultiRobotPlanning/a_star_epsilon.hpp
+#   libMultiRobotPlanning/include/libMultiRobotPlanning/assignment.hpp
+#   libMultiRobotPlanning/include/libMultiRobotPlanning/cbs.hpp
+#   libMultiRobotPlanning/include/libMultiRobotPlanning/cbs_ta.hpp
+#   libMultiRobotPlanning/include/libMultiRobotPlanning/ecbs.hpp
+#   libMultiRobotPlanning/include/libMultiRobotPlanning/ecbs_ta.hpp
+#   libMultiRobotPlanning/include/libMultiRobotPlanning/neighbor.hpp
+#   libMultiRobotPlanning/include/libMultiRobotPlanning/next_best_assignment.hpp
+#   libMultiRobotPlanning/include/libMultiRobotPlanning/planresult.hpp
+#   libMultiRobotPlanning/include/libMultiRobotPlanning/sipp.hpp
+#   libMultiRobotPlanning/example/timer.hpp
+# )
+
+# #add_executable(libMultiRobotPlanning ${ALL_SOURCE_FILES})
+# add_custom_target(clang-format
+#   COMMAND clang-format -i ${ALL_SOURCE_FILES}
+# )
 
 ## cbs_ta
 add_executable(cbs_ta

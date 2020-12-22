@@ -7,14 +7,14 @@
 #include <boost/functional/hash.hpp>
 #include <boost/program_options.hpp>
 
-#include <libMultiRobotPlanning/ecbs_ta.hpp>
-#include <libMultiRobotPlanning/next_best_assignment.hpp>
+#include "libMultiRobotPlanning/ecbs_ta.hpp"
+#include "libMultiRobotPlanning/next_best_assignment.hpp"
+#include "libMultiRobotPlanning/timer.hpp"
 
 using libMultiRobotPlanning::ECBSTA;
 using libMultiRobotPlanning::Neighbor;
 using libMultiRobotPlanning::PlanResult;
 using libMultiRobotPlanning::NextBestAssignment;
-
 
 // TODO: need namespace for the header and separate cpp file for implementation
 struct State {
@@ -284,7 +284,8 @@ struct hash<Waypoints> {
 };
 }// namespace std
 
-///
+#include <libMultiRobotPlanning/shortest_path_heuristic.hpp>
+
 class Environment {
  public:
   Environment(size_t dimx, size_t dimy, size_t numw,
