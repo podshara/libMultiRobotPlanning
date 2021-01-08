@@ -9,10 +9,10 @@ project(mushr_coordination)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   dynamic_reconfigure
-  message_generation
   roscpp
   rospy
   std_msgs
+  message_generation
   geometry_msgs
 )
 
@@ -27,16 +27,18 @@ add_message_files(
 
 generate_messages(
   DEPENDENCIES
-  geometry_msgs
   std_msgs
+  geometry_msgs
 )
 
 catkin_package(
+  INCLUDE_DIRS include
   CATKIN_DEPENDS 
     roscpp 
     rospy 
     std_msgs
     tf2
+    message_runtime
 )
 
 include_directories(include 
@@ -45,125 +47,14 @@ include_directories(include
   libMultiRobotPlanning/include
 )
 
-
-
-# set(ALL_SOURCE_FILES
-#   libMultiRobotPlanning/include/libMultiRobotPlanning/a_star.hpp
-#   libMultiRobotPlanning/include/libMultiRobotPlanning/a_star_epsilon.hpp
-#   libMultiRobotPlanning/include/libMultiRobotPlanning/assignment.hpp
-#   libMultiRobotPlanning/include/libMultiRobotPlanning/cbs.hpp
-#   libMultiRobotPlanning/include/libMultiRobotPlanning/cbs_ta.hpp
-#   libMultiRobotPlanning/include/libMultiRobotPlanning/ecbs.hpp
-#   libMultiRobotPlanning/include/libMultiRobotPlanning/ecbs_ta.hpp
-#   libMultiRobotPlanning/include/libMultiRobotPlanning/neighbor.hpp
-#   libMultiRobotPlanning/include/libMultiRobotPlanning/next_best_assignment.hpp
-#   libMultiRobotPlanning/include/libMultiRobotPlanning/planresult.hpp
-#   libMultiRobotPlanning/include/libMultiRobotPlanning/sipp.hpp
-#   libMultiRobotPlanning/example/timer.hpp
-# )
-
-# #add_executable(libMultiRobotPlanning ${ALL_SOURCE_FILES})
-#target_link_libraries(libMultiRobotPlanning ${Boost_LIBRARIES})
-
-# ## a_star
-# add_executable(a_star
-#   libMultiRobotPlanning/example/a_star.cpp
-# )
-# target_link_libraries(a_star
-#   ${Boost_LIBRARIES}
-# )
-
-# ## a_star_epsilon
-# add_executable(a_star_epsilon
-#   libMultiRobotPlanning/example/a_star_epsilon.cpp
-# )
-# target_link_libraries(a_star_epsilon
-#   ${Boost_LIBRARIES}
-# )
-
-# ## assignment
-# add_executable(assignment
-#   libMultiRobotPlanning/example/assignment.cpp
-# )
-# target_link_libraries(assignment
-#   ${Boost_LIBRARIES}
-# )
-
-# ## cbs
-# add_executable(cbs
-#   libMultiRobotPlanning/example/cbs.cpp
-# )
-# target_link_libraries(cbs
-#   ${Boost_LIBRARIES}
-#   yaml-cpp
-# )
-
-# ## cbs_ta
-# add_executable(cbs_ta
-#   libMultiRobotPlanning/example/cbs_ta.cpp
-# )
-# target_link_libraries(cbs_ta
-#   ${Boost_LIBRARIES}
-#   yaml-cpp
-# )
-
-# ## ecbs
-# add_executable(ecbs
-#   libMultiRobotPlanning/example/ecbs.cpp
-# )
-# target_link_libraries(ecbs
-#   ${Boost_LIBRARIES}
-#   yaml-cpp
-# )
-
-# ## ecbs_ta
-# add_executable(ecbs_ta
-#   libMultiRobotPlanning/example/ecbs_ta.cpp
-# )
-# target_link_libraries(ecbs_ta
-#   ${Boost_LIBRARIES}
-#   yaml-cpp
-# )
-
-# ## ecbs_ta
-# add_executable(ecbs_mushr
-#   libMultiRobotPlanning/example/ecbs_mushr.cpp
-# )
-# target_link_libraries(ecbs_mushr
-#   ${Boost_LIBRARIES}
-#   yaml-cpp
-# )
-
-# ## next_best_assignment
-# add_executable(next_best_assignment
-#   libMultiRobotPlanning/example/next_best_assignment.cpp
-# )
-# target_link_libraries(next_best_assignment
-#   ${Boost_LIBRARIES}
-#   yaml-cpp
-# )
-
-# ## sipp
-# add_executable(sipp
-#   libMultiRobotPlanning/example/sipp.cpp
-# )
-# target_link_libraries(sipp
-#   ${Boost_LIBRARIES}
-#   yaml-cpp
-# )
-
-# ## mapf_prioritized_sipp
-# add_executable(mapf_prioritized_sipp
-#   libMultiRobotPlanning/example/mapf_prioritized_sipp.cpp
-# )
-# target_link_libraries(mapf_prioritized_sipp
-#   ${Boost_LIBRARIES}
-#   yaml-cpp
-# )
-
-add_executable(mushr_coordination src/nodes/mushr_coor_node.cpp src/mushr_coordination.cpp)
+add_executable(mushr_coordination src/nodes/mushr_coor_node.cpp include/mushr_coordination/mushr_coordination.hpp)
 target_link_libraries(mushr_coordination ${catkin_LIBRARIES})
-#add_dependencies(mushr_coordination libMultiRobotPlanning)
+#add_dependencies(mushr_coordination my_package_generate_messages_cpp)
+
+catkin_install_python(PROGRAMS 
+  src/init_planner.py
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
 
 install(DIRECTORY include/${PROJECT_NAME}/
   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
@@ -176,6 +67,11 @@ install(DIRECTORY libMultiRobotPlanning/include/libMultiRobotPlanning/
 )
 
 #add_library(libMultiRobotPlanning)
+install(TARGETS mushr_coordination
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+)
 
 install(DIRECTORY launch
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}

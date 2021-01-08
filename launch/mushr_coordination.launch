@@ -1,5 +1,5 @@
 <launch>
-    <node pkg="mushr_coordination" type="mushr_coordination" name="mushr_coordination">
+    <node pkg="mushr_coordination" type="mushr_coordination" name="mushr_coordination" output="screen">
         <param name="minx" value="-20"/>
         <param name="miny" value="-20"/>
         <param name="maxx" value="20"/>
