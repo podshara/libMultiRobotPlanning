@@ -17,7 +17,7 @@ if __name__ == "__main__":
     rospy.init_node("init_planner")
     rospy.sleep(1)
 
-    count = 2
+    count = 4
     pubs = []
     # this is basically initializing all the subscribers for counting the number of cars and publishers for initiailizing pose and goal points.
     for i in range(count):
@@ -27,10 +27,10 @@ if __name__ == "__main__":
     obs_pub = rospy.Publisher("/mushr_coordination/obstacles", PoseArray, queue_size=5)
     rospy.sleep(1)
 
-    #car_pose = [[0, 10], [30, 3], [14, 11], [18, 10]]
-    #goal_pose = [[[6, 28], [32, 1]], [[25, 23], [7, 11]], [[21, 10], [10, 21]], [[5, 6], [31, 15]]]
-    car_pose = [[0, 0], [30, 30]]
-    goal_pose = [[[10, 10], [20, 20]], [[30, 10], [10, 30]]]
+    car_pose = [[0, 10], [15, 3], [7, 5], [9, 5]]
+    goal_pose = [[[6, 15], [8, 1]], [[12, 12], [7, 11]], [[10, 5], [5, 10]], [[5, 6], [15, 7]]]
+    #car_pose = [[0, 0], [30, 30], [10, 20], [0, 30]]
+    #goal_pose = [[[10, 10], [20, 20]], [[30, 10], [10, 30]], [[0, 10], [0, 20]], [[20, 0], [20, 30]]]
 
     for i in range(count):
         now = rospy.Time.now()
@@ -53,11 +53,11 @@ if __name__ == "__main__":
     goalmsg = GoalPoseArray()
     goalmsg.header.frame_id = "/map"
     goalmsg.header.stamp = now
-    goalmsg.scale = 0.1
-    goalmsg.minx = -10
-    goalmsg.miny = -10
-    goalmsg.maxx = 40
-    goalmsg.maxy = 40
+    goalmsg.scale = 1
+    goalmsg.minx = 0
+    goalmsg.miny = 0
+    goalmsg.maxx = 15
+    goalmsg.maxy = 15
     for i in range(count):
         goalmsg.goals.append(PoseArray())
         for j in range(2):

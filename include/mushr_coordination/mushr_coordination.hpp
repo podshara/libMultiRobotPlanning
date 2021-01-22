@@ -39,11 +39,12 @@ class MushrCoordination {
     MushrCoordination(ros::NodeHandle &nh)
       : m_w(1.3),
         m_maxTaskAssignments(1e9),
-        m_num_agent(2),
+        m_num_agent(4),
         m_planning(false),
         m_ini_obs(false),
         m_ini_goal(false),
-        m_sim(true)  {
+        m_sim(true),
+        m_num_waypoint(2)  {
       m_car_pose = std::vector<std::pair<double, double>>(m_num_agent);
       for (size_t i = 0; i < m_num_agent; ++i) {
         m_sub_car_pose.push_back(nh.subscribe<geometry_msgs::PoseStamped>(
@@ -134,7 +135,7 @@ class MushrCoordination {
       int dimy = scaley(m_maxy) + 1;
       std::cout << dimx << " " << dimy << std::endl;
 
-      Environment mapf(dimx, dimy, 1, obstacles, startStates, goals,
+      Environment mapf(dimx, dimy, m_num_waypoint, obstacles, startStates, goals,
                     m_maxTaskAssignments);
       std::cout << "done init environment" << std::endl;
       ECBSTA<State, Action, int, Conflict, Constraints, Waypoints,
@@ -200,6 +201,7 @@ class MushrCoordination {
     bool m_ini_goal;
     size_t m_maxTaskAssignments;
     size_t m_num_agent;
+    size_t m_num_waypoint;
     bool m_sim;
     double m_w;
     double m_scale;
