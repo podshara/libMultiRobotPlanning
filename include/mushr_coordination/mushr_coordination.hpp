@@ -4,6 +4,7 @@
 #include <iostream>
 #include <algorithm>
 #include <string>
+#include <utility>
 #include <yaml-cpp/yaml.h>
 
 #include <boost/functional/hash.hpp>
@@ -35,27 +36,15 @@ using libMultiRobotPlanning::NextBestAssignment;
 namespace node_mushr_coor{
 class MushrCoordination {
   public:
-    MushrCoordination(ros::NodeHandle &nh)  {
-      // nh.getParam("minx", m_minx);
-      // nh.getParam("miny", m_miny);
-      // nh.getParam("maxx", m_maxx);
-      // nh.getParam("maxy", m_maxy);
-      // if(!nh.getParam("w", m_w)) {m_w = 1.0;} // suboptimality
-      m_w = 1.0;
-      m_maxTaskAssignments = 1e9;
-      m_scale = 1.0;
-      m_num_agent = 4;
-      m_sim = true;
-      m_planning = false;
-      // std::string param;
-      //if(!nh.getParam("maxTaskAssignments", m_maxTaskAssignments)) {m_maxTaskAssignments = 1e9;}
-      // if(!nh.getParam("scale", m_scale)) {m_scale = 1.0;}
-      // if(!nh.getParam("numAgent", m_num_agent)) {m_num_agent = 8;}
-      // if(!nh.getParam("sim", param)) {m_sim = param.compare("true");}
-      m_startStates = std::vector<State>();
-      for (size_t i = 0; i < m_num_agent; ++i) {
-        m_startStates.emplace_back(-1, -1, -1, -1);
-      }
+    MushrCoordination(ros::NodeHandle &nh)
+      : m_w(1.3),
+        m_maxTaskAssignments(1e9),
+        m_num_agent(2),
+        m_planning(false),
+        m_ini_obs(false),
+        m_ini_goal(false),
+        m_sim(true)  {
+      m_car_pose = std::vector<std::pair<double, double>>(m_num_agent);
       for (size_t i = 0; i < m_num_agent; ++i) {
         m_sub_car_pose.push_back(nh.subscribe<geometry_msgs::PoseStamped>(
               "/car" + std::to_string(i + 1) + "/" + (m_sim ? "car_pose" : "mocap_pose"),
@@ -67,37 +56,31 @@ class MushrCoordination {
               10
             ));
       }
-      // TODO: subscribe to obstracle topic : PoseArray
       m_sub_obs_pose = nh.subscribe("/mushr_coordination/obstacles", 
               10, 
               &MushrCoordination::ObsPoseCallback, 
               this);
-      // TODO: subscribe to goal: array of PoseArray
       m_sub_goal = nh.subscribe("/mushr_coordination/goals", 
               10, 
               &MushrCoordination::GoalCallback, 
               this);
-      ros::Publisher chat = nh.advertise<std_msgs::String>("/chatter", 10);
       ros::Duration(1).sleep();
-      std_msgs::String msg;
-      msg.data = "Hello";
-      chat.publish(msg);
-
     }
 
     void CarPoseCallback(const geometry_msgs::PoseStamped::ConstPtr& msg, size_t i) {
       std::cout << "get car " << i << std::endl;
       m_assigned.insert(i);
-      m_startStates[i] = State(0, scalex(msg->pose.position.x), scaley(msg->pose.position.y), 0);
+      m_car_pose[i] = std::make_pair(msg->pose.position.x, msg->pose.position.y);
       if (isReady()) {
           solve();
       }
     }
 
     void ObsPoseCallback(const geometry_msgs::PoseArray::ConstPtr& msg) {
-      m_ini_obs = true;
+      std::cout << "get obs " << std::endl;
+      m_ini_obs = true;  
       for (auto &pose : msg->poses) {
-        m_obstacles.insert(Location(scalex(pose.position.x), scaley(pose.position.y)));
+        m_obs_pose.emplace_back(pose.position.x, pose.position.y);
       }
       if (isReady()) {
         solve();
@@ -105,14 +88,18 @@ class MushrCoordination {
     }
 
     void GoalCallback(const mushr_coordination::GoalPoseArray::ConstPtr& msg) {
-      std::vector<Location> tmp;
       std::cout << "get goal" << std::endl;
+      m_ini_goal = true;
+      m_scale = msg->scale;
+      m_minx = msg->minx;
+      m_miny = msg->miny;
+      m_maxx = msg->maxx;
+      m_maxy = msg->maxy;
       for (auto &goal : msg->goals) {
+        m_goal_pose.emplace_back();
         for (auto &pose : goal.poses) {
-          tmp.emplace_back(scalex(pose.position.x), scaley(pose.position.y));
+          m_goal_pose.back().emplace_back(pose.position.x, pose.position.y);
         }
-        m_goals.emplace_back(tmp);
-        tmp.clear();
       }
       if (isReady()) {
           solve();
@@ -121,20 +108,43 @@ class MushrCoordination {
 
   private:
     void solve() {
-      std::cout << "start planning" << std::endl;
       m_planning = true;
-      int dimx = scalex(m_maxx);
-      int dimy = scaley(m_maxy);
+      std::cout << "start planning" << std::endl;
+      std::unordered_set<Location> obstacles;
+      std::vector<State> startStates;
+      std::vector<Waypoints> goals;
+      // init goals
+      for (auto& goal: m_goal_pose) {
+        std::vector<Location> ls;
+        for(auto& waypoint: goal) {
+          ls.emplace_back(scalex(waypoint.first), scaley(waypoint.second));
+        }
+        goals.emplace_back(ls);
+      }
+      // init obstacles
+      for(auto& pos: m_obs_pose) {
+        obstacles.insert(Location(scalex(pos.first), scaley(pos.second)));
+      }
+      // init start states
+      for(auto& pos: m_car_pose) {
+        startStates.emplace_back(0, scalex(pos.first), scaley(pos.second), 0); 
+      }
+
+      int dimx = scalex(m_maxx) + 1;
+      int dimy = scaley(m_maxy) + 1;
       std::cout << dimx << " " << dimy << std::endl;
-      Environment mapf(dimx, dimy, 1, m_obstacles, m_startStates, m_goals,
+
+      Environment mapf(dimx, dimy, 1, obstacles, startStates, goals,
                     m_maxTaskAssignments);
       std::cout << "done init environment" << std::endl;
       ECBSTA<State, Action, int, Conflict, Constraints, Waypoints,
             Environment>
           cbs(mapf, m_w);
+      
       std::vector<PlanResult<State, Action, int> > solution;
-      bool success = cbs.search(m_startStates, solution);
+      bool success = cbs.search(startStates, solution);
       std::cout << "planner " << (success ? "success" : "failed") << std::endl;
+
       if (success) {
         for (size_t a = 0; a < solution.size(); ++a) {
           geometry_msgs::PoseArray plan;
@@ -148,13 +158,13 @@ class MushrCoordination {
             plan.poses.push_back(p);
           }
           m_pub_plan[a].publish(plan);
+          std::cout << "publish plan for car " << a+1 << std::endl;
         }
       }
     }
 
     bool isReady() {
-      std::cout << " " << m_assigned.size() << " " << m_goals.size() << " " << m_startStates.size();
-      return m_assigned.size() == m_num_agent /*&& m_ini_obs*/ && !m_startStates.empty() && !m_goals.empty() && !m_planning;
+      return m_assigned.size() == m_num_agent && m_ini_obs && m_ini_goal && !m_planning;
     }
 
     int scalex(double x) {
@@ -181,20 +191,19 @@ class MushrCoordination {
     ros::Subscriber m_sub_obs_pose;
     ros::Subscriber m_sub_goal;
     std::vector<ros::Publisher> m_pub_plan;
-    std::unordered_set<Location> m_obstacles;
-    std::vector<State> m_startStates;
-    std::vector<Waypoints> m_goals;
-    // Environment m_map;
-    // ECBSTA<State, Action, int, Conflict, Constraints, Waypoints, Environment> cbs;
+    std::vector<std::pair<double, double>> m_car_pose;
+    std::vector<std::pair<double, double>> m_obs_pose;
+    std::vector<std::vector<std::pair<double, double>>> m_goal_pose;
     std::set<size_t> m_assigned;
     bool m_planning;
     bool m_ini_obs;
+    bool m_ini_goal;
     size_t m_maxTaskAssignments;
     size_t m_num_agent;
     bool m_sim;
     double m_w;
     double m_scale;
-    double m_minx = -20, m_miny = -20, m_maxx = 20, m_maxy = 20;
+    double m_minx, m_miny, m_maxx, m_maxy;
 };
 }
 

@@ -312,9 +312,9 @@ class Environment {
         m_waypoints.push_back(goal);
     }
     for (size_t i = 0; i < startStates.size(); ++i) {
+      std::cout << startStates[i] << std::endl;
       for (const auto& goal : goals) {
         int cost = 0;
-        std::cout << startStates[i] << std::endl;
         if (!goal.points.empty() && goal.points[0].x != -1) {
           cost = m_heuristic.getValue(Location(startStates[i].x, startStates[i].y), goal.points[startStates[i].index]);
           // std::cout << cost << " ";
