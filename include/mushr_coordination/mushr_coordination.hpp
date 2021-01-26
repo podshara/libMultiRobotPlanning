@@ -37,18 +37,18 @@ namespace node_mushr_coor{
 class MushrCoordination {
   public:
     MushrCoordination(ros::NodeHandle &nh)
-      : m_w(1.3),
-        m_maxTaskAssignments(1e9),
-        m_num_agent(4),
+      : m_maxTaskAssignments(1e9),
         m_planning(false),
         m_ini_obs(false),
         m_ini_goal(false),
-        m_sim(true),
-        m_num_waypoint(2)  {
+        m_sim(true) {
+      nh.getParam("w", m_w);
+      nh.getParam("num_agent", m_num_agent);
+      nh.getParam("num_waypoint", m_num_waypoint);
       m_car_pose = std::vector<std::pair<double, double>>(m_num_agent);
       for (size_t i = 0; i < m_num_agent; ++i) {
         m_sub_car_pose.push_back(nh.subscribe<geometry_msgs::PoseStamped>(
-              "/car" + std::to_string(i + 1) + "/" + (m_sim ? "car_pose" : "mocap_pose"),
+              "/car" + std::to_string(i + 1) + "/" + (m_sim ? "init_pose" : "mocap_pose"),
               10,
               boost::bind(&MushrCoordination::CarPoseCallback, this, _1, i)
             ));
@@ -162,6 +162,10 @@ class MushrCoordination {
           std::cout << "publish plan for car " << a+1 << std::endl;
         }
       }
+      m_ini_obs = false;
+      m_ini_goal = false;
+      m_assigned.clear();
+      m_planning = false;
     }
 
     bool isReady() {
@@ -199,9 +203,9 @@ class MushrCoordination {
     bool m_planning;
     bool m_ini_obs;
     bool m_ini_goal;
-    size_t m_maxTaskAssignments;
-    size_t m_num_agent;
-    size_t m_num_waypoint;
+    int m_maxTaskAssignments;
+    int m_num_agent;
+    int m_num_waypoint;
     bool m_sim;
     double m_w;
     double m_scale;
