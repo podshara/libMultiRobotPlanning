@@ -42,9 +42,9 @@ class MushrCoordination {
         m_ini_obs(false),
         m_ini_goal(false),
         m_sim(true) {
-      nh.getParam("w", m_w);
-      nh.getParam("num_agent", m_num_agent);
-      nh.getParam("num_waypoint", m_num_waypoint);
+      nh.getParam("/mushr_coordination/w", m_w);
+      nh.getParam("/mushr_coordination/num_waypoint", m_num_waypoint);
+      nh.getParam("/mushr_coordination/num_agent", m_num_agent);
       m_car_pose = std::vector<std::pair<double, double>>(m_num_agent);
       for (size_t i = 0; i < m_num_agent; ++i) {
         m_sub_car_pose.push_back(nh.subscribe<geometry_msgs::PoseStamped>(
@@ -122,6 +122,9 @@ class MushrCoordination {
         }
         goals.emplace_back(ls);
       }
+      for (auto & g: goals) {
+        std::cout << g << std::endl;
+      }
       // init obstacles
       for(auto& pos: m_obs_pose) {
         obstacles.insert(Location(scalex(pos.first), scaley(pos.second)));
@@ -133,8 +136,7 @@ class MushrCoordination {
 
       int dimx = scalex(m_maxx) + 1;
       int dimy = scaley(m_maxy) + 1;
-      std::cout << dimx << " " << dimy << std::endl;
-
+      std::cout << dimx << " " << dimy << " " << m_num_agent << " " << m_num_waypoint << std::endl;
       Environment mapf(dimx, dimy, m_num_waypoint, obstacles, startStates, goals,
                     m_maxTaskAssignments);
       std::cout << "done init environment" << std::endl;
@@ -162,6 +164,9 @@ class MushrCoordination {
           std::cout << "publish plan for car " << a+1 << std::endl;
         }
       }
+      m_goal_pose.clear();
+      m_obs_pose.clear();
+      m_car_pose = std::vector<std::pair<double, double>>(m_num_agent);
       m_ini_obs = false;
       m_ini_goal = false;
       m_assigned.clear();
