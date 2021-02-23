@@ -25,6 +25,7 @@
 #include "geometry_msgs/PoseArray.h"
 #include "ackermann_msgs/AckermannDriveStamped.h"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.h"
+#include "visualization_msgs/Marker.h"
 
 
 // TODO: need namespace for the header
@@ -54,6 +55,14 @@ class MushrCoordination {
             ));
         m_pub_plan.push_back(nh.advertise<geometry_msgs::PoseArray>(
               "/car" + std::to_string(i + 1) + "/waypoints", 
+              10
+            ));
+        m_pub_pick.push_back(nh.advertise<visualization_msgs::Marker>(
+              "/car" + std::to_string(i + 1) + "/pick", 
+              10
+            ));
+        m_pub_drop.push_back(nh.advertise<visualization_msgs::Marker>(
+              "/car" + std::to_string(i + 1) + "/drop", 
               10
             ));
       }
@@ -134,6 +143,9 @@ class MushrCoordination {
         startStates.emplace_back(0, scalex(pos.first), scaley(pos.second), 0); 
       }
 
+      int mkid = 0; //visualize
+      double color[][4] = {{1, 0, 0, 1}, {0, 1, 0, 1}, {0, 0, 1, 1}, {1, 1, 0, 1}, {1, 0, 1, 1}, {0, 1, 1, 1}};
+
       int dimx = scalex(m_maxx) + 1;
       int dimy = scaley(m_maxy) + 1;
       std::cout << dimx << " " << dimy << " " << m_num_agent << " " << m_num_waypoint << std::endl;
@@ -153,13 +165,102 @@ class MushrCoordination {
           geometry_msgs::PoseArray plan;
           plan.header.stamp = ros::Time::now();
           plan.header.frame_id = "map";
-          for (const auto& state : solution[a].states) {
+          int time = 1;
+          for (size_t i = 0; i < solution[a].states.size(); i++) {
             geometry_msgs::Pose p;
-            p.position.x = r_scalex(state.first.x);
-            p.position.y = r_scaley(state.first.y);
-            p.position.z = 0.0;
+            // visualize
+            switch (solution[a].actions[i].first) {
+              case Action::Up: 
+                p.orientation.x = 0;
+                p.orientation.y = 0;
+                p.orientation.z = 0.707;
+                p.orientation.w = 0.707;
+                break;
+              case Action::Down:
+                p.orientation.x = 0;
+                p.orientation.y = 0;
+                p.orientation.z = 0.707;
+                p.orientation.w = -0.707;
+                break;
+              case Action::Left: 
+                p.orientation.x = 0;
+                p.orientation.y = 0;
+                p.orientation.z = 1;
+                p.orientation.w = 0;
+                break;
+              case Action::Right:
+                p.orientation.x = 0;
+                p.orientation.y = 0;
+                p.orientation.z = 0;
+                p.orientation.w = 1; 
+                break;
+            //
+              case Action::Wait:
+                if (i < solution[a].states.size() - 1) {
+                  time++;
+                  continue;
+                }
+                break;
+            }
+                        
+            double x = r_scalex(solution[a].states[i].first.x);
+            double y = r_scaley(solution[a].states[i].first.y);
+            p.position.x = x;
+            p.position.y = y;
+            p.position.z = 0; //time * 0.001;
+
             plan.poses.push_back(p);
+            time = 1;
           }
+
+          // visualize
+          visualization_msgs::Marker pick;
+          visualization_msgs::Marker drop;
+          double marker_size = 0.25; 
+          for (size_t i = 0; i < goals.size(); i++) {
+            if (goals[i].points.back().x == solution[a].states.back().first.x &&
+                goals[i].points.back().y == solution[a].states.back().first.y) {
+              pick.pose.position.x = m_goal_pose[i][0].first;
+              pick.pose.position.y = m_goal_pose[i][0].second;
+              pick.pose.position.z = 0;
+              drop.pose.position.x = m_goal_pose[i][1].first;
+              drop.pose.position.y = m_goal_pose[i][1].second;
+              drop.pose.position.z = 0;
+
+              pick.color.r = color[a][0];
+              pick.color.g = color[a][1];
+              pick.color.b = color[a][2];
+              pick.color.a = color[a][3];
+              drop.color.r = color[a][0];
+              drop.color.g = color[a][1];
+              drop.color.b = color[a][2];
+              drop.color.a = color[a][3];
+
+              pick.scale.x = marker_size;
+              pick.scale.y = marker_size;
+              pick.scale.z = marker_size;
+              drop.scale.x = marker_size;
+              drop.scale.y = marker_size;
+              drop.scale.z = marker_size;
+
+              pick.header.frame_id = "map";
+              pick.header.stamp = ros::Time();
+              pick.id = mkid++;
+              pick.type = visualization_msgs::Marker::SPHERE;
+              pick.action = visualization_msgs::Marker::ADD;
+              drop.header.frame_id = "map";
+              drop.header.stamp = ros::Time();
+              drop.id = mkid++;
+              drop.type = visualization_msgs::Marker::SPHERE;
+              drop.action = visualization_msgs::Marker::ADD;
+
+              m_pub_pick[a].publish(pick);
+              m_pub_drop[a].publish(drop);
+              break;
+            }
+          }
+          // 
+
           m_pub_plan[a].publish(plan);
           std::cout << "publish plan for car " << a+1 << std::endl;
         }
@@ -201,6 +302,8 @@ class MushrCoordination {
     ros::Subscriber m_sub_obs_pose;
     ros::Subscriber m_sub_goal;
     std::vector<ros::Publisher> m_pub_plan;
+    std::vector<ros::Publisher> m_pub_pick;
+    std::vector<ros::Publisher> m_pub_drop;
     std::vector<std::pair<double, double>> m_car_pose;
     std::vector<std::pair<double, double>> m_obs_pose;
     std::vector<std::vector<std::pair<double, double>>> m_goal_pose;

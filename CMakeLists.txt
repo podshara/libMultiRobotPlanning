@@ -38,6 +38,7 @@ catkin_package(
     rospy 
     std_msgs
     tf2
+    visualization_msgs
     message_runtime
 )
 
