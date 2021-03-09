@@ -207,7 +207,7 @@ class MushrCoordination {
             double y = r_scaley(solution[a].states[i].first.y);
             p.position.x = x;
             p.position.y = y;
-            p.position.z = 0; //time * 0.001;
+            p.position.z = time * 0.001;
 
             plan.poses.push_back(p);
             time = 1;
