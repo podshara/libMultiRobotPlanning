@@ -314,14 +314,18 @@ class Environment {
     for (size_t i = 0; i < startStates.size(); ++i) {
       std::cout << startStates[i] << std::endl;
       for (const auto& goal : goals) {
+        //std::cout << goal.points[0] << std::endl;
         int cost = 0;
-        if (!goal.points.empty() && goal.points[0].x != -1) {
+        if (!goal.points.empty() && goal.points[0].x >= 0) {
           cost = m_heuristic.getValue(Location(startStates[i].x, startStates[i].y), goal.points[startStates[i].index]);
           // std::cout << cost << " ";
           for (size_t j = startStates[i].index; j < numw - 1; ++j) {
+            std::cout << goal.points[j] << std::endl;
             cost += m_heuristic.getValue(goal.points[j], goal.points[j + 1]);
             // std::cout << cost << " ";
           }
+        } else if (!goal.points.empty()) {
+          cost = m_heuristic.getValue(Location(startStates[i].x, startStates[i].y), Location(startStates[i].x, startStates[i].y));
         }
         // std::cout << cost << " " << goal << " " << startStates[i] << std::endl;
         m_assignment.setCost(i, goal, cost);
@@ -333,7 +337,7 @@ class Environment {
   void setLowLevelContext(size_t agentIdx, const Constraints* constraints,
                           const Waypoints* task) {
     assert(constraints);
-    // std::cout << "setLowLevel" << std::endl;
+    //std::cout << "setLowLevel" << std::endl;
     m_agentIdx = agentIdx;
     m_goal = task;
     m_constraints = constraints;
@@ -350,15 +354,14 @@ class Environment {
         m_lastGoalConstraint = std::max(m_lastGoalConstraint, vc.time);
       }
     }
-    // std::cout << "setLLCtx: " << agentIdx << " " << m_lastGoalConstraint <<
-    // std::endl;
+    //std::cout << "setLLCtx: " << agentIdx << " " << m_lastGoalConstraint << std::endl;
   }
 
   int admissibleHeuristic(const State& s) {
-    if (m_goal != nullptr && s.index < m_numw) {
-      if (m_goal->points[0].x == -1) {
-        return 0;
-      }
+    //std::cout << "admissibleHeuristic" << std::endl;
+    //std::cout << m_goal->points[0] << std::endl;
+    if (m_goal != nullptr && s.index < m_numw && m_goal->points[0].x > 0) {
+      
       int cost = m_heuristic.getValue(Location(s.x, s.y), m_goal->points[s.index]);
       // std::cout << cost << " ";
       for (size_t i = s.index; i < m_numw - 1; i++) {
@@ -369,6 +372,7 @@ class Environment {
       return cost;
       //return m_heuristic.getValue(Location(s.x, s.y), *m_goal);
     } else {
+      std::cout << "exit" << std::endl;
       return 0;
     }
   }
@@ -378,7 +382,7 @@ class Environment {
       const State& s, int /*gScore*/,
       const std::vector<PlanResult<State, Action, int> >& solution) {
     int numConflicts = 0;
-    // std::cout << "focalState" << std::endl;
+    //std::cout << "focalStateHeuristic" << std::endl;
     for (size_t i = 0; i < solution.size(); ++i) {
       if (i != m_agentIdx) {
         if (solution[i].states.size() > 0) { 
@@ -399,6 +403,7 @@ class Environment {
   int focalTransitionHeuristic(
       const State& s1a, const State& s1b, int /*gScoreS1a*/, int /*gScoreS1b*/,
       const std::vector<PlanResult<State, Action, int> >& solution) {
+    //std::cout << "focalTransitionHeuristic" << std::endl;
     int numConflicts = 0;
     // std::cout << "focaltrans" << std::endl;
     for (size_t i = 0; i < solution.size(); ++i) {
@@ -416,6 +421,7 @@ class Environment {
   // Count all conflicts
   int focalHeuristic(
       const std::vector<PlanResult<State, Action, int> >& solution) {
+    //std::cout << "focalHeuristic" << std::endl;
     int numConflicts = 0;
 
     int max_t = 0;
@@ -476,6 +482,14 @@ class Environment {
     // }
     
     // std::cout << "getNeighbots" << std::endl;
+    if (m_goal != nullptr && m_goal->points[0].x < 0) {
+      State n(s.time + 1, s.x, s.y, m_numw);
+      if (stateValid(n) && transitionValid(s, n)) {
+        neighbors.emplace_back(
+            Neighbor<State, Action, int>(n, Action::Wait, 0));
+      }
+      return;
+    }
     const Location *cur = m_goal == nullptr || s.index >= m_numw ? nullptr : &(m_goal->points[s.index]);
     neighbors.clear();
     {
@@ -517,17 +531,17 @@ class Environment {
   bool getFirstConflict(
       const std::vector<PlanResult<State, Action, int> >& solution,
       Conflict& result) {
-    std::cout << "getfirstconflict" << std::endl;
+    //std::cout << "getfirstconflict" << std::endl;
     int max_t = 0;
     std::vector<State> pickup; 
     for (const auto& sol : solution) {
       max_t = std::max<int>(max_t, sol.states.size());
       pickup.push_back(getPickUp(sol, 0));
     }
-    std::cout << "pick up" << std::endl;
-    for (const auto& p : pickup) {
-      std::cout << p << std::endl;
-    }
+    // std::cout << "pick up" << std::endl;
+    // for (const auto& p : pickup) {
+    //   std::cout << p << std::endl;
+    // }
 
     for (int t = 0; t < max_t; ++t) {
       // check drive-drive vertex collisions
@@ -594,7 +608,7 @@ class Environment {
 
   void createConstraintsFromConflict(
       const Conflict& conflict, std::map<size_t, Constraints>& constraints) {
-    std::cout << "createconstraints" << std::endl;
+    //std::cout << "createconstraints" << std::endl;
     if (conflict.type == Conflict::Vertex) {
       Constraints c1;
       c1.vertexConstraints.emplace(

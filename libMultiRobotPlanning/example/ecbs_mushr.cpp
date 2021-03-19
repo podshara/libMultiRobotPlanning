@@ -322,6 +322,8 @@ class Environment {
             cost += m_heuristic.getValue(goal.points[j], goal.points[j + 1]);
             // std::cout << cost << " ";
           }
+        } else {
+          cost = m_heuristic.getValue(Location(startStates[i].x, startStates[i].y), Location(startStates[i].x, startStates[i].y));
         }
         // std::cout << cost << " " << goal << " " << startStates[i] << std::endl;
         m_assignment.setCost(i, goal, cost);
@@ -355,10 +357,7 @@ class Environment {
   }
 
   int admissibleHeuristic(const State& s) {
-    if (m_goal != nullptr && s.index < m_numw) {
-      if (m_goal->points[0].x == -1) {
-        return 0;
-      }
+    if (m_goal != nullptr && s.index < m_numw && m_goal->points[0].x != -1) {
       int cost = m_heuristic.getValue(Location(s.x, s.y), m_goal->points[s.index]);
       // std::cout << cost << " ";
       for (size_t i = s.index; i < m_numw - 1; i++) {
@@ -476,7 +475,7 @@ class Environment {
     // }
     
     // std::cout << "getNeighbots" << std::endl;
-    const Location *cur = m_goal == nullptr || s.index >= m_numw ? nullptr : &(m_goal->points[s.index]);
+    const Location *cur = m_goal == nullptr || s.index >= m_numw || m_goal->points[0].x == -1 ? nullptr : &(m_goal->points[s.index]);
     neighbors.clear();
     {
       State n(s.time + 1, s.x, s.y, s.index + ((cur != nullptr && s.x == cur->x && s.y == cur->y) ? 1 : (cur->x == -1 ? m_numw : 0)));
