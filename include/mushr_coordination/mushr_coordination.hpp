@@ -208,7 +208,6 @@ class MushrCoordination {
           geometry_msgs::PoseArray plan;
           plan.header.stamp = ros::Time::now();
           plan.header.frame_id = "map";
-<<<<<<< HEAD
           for(int t = 0; t < startTime.size() - 1; t++) {
             int j = t * m_num_agent + a;
             int time = 1;
@@ -257,55 +256,6 @@ class MushrCoordination {
               p.position.x = x;
               p.position.y = y;
               p.position.z = time * 0.001;
-=======
-          int time = 1;
-          for (size_t i = 0; i < solution[a].states.size(); i++) {
-            geometry_msgs::Pose p;
-            // visualize
-            switch (solution[a].actions[i].first) {
-              case Action::Up: 
-                p.orientation.x = 0;
-                p.orientation.y = 0;
-                p.orientation.z = 0.707;
-                p.orientation.w = 0.707;
-                break;
-              case Action::Down:
-                p.orientation.x = 0;
-                p.orientation.y = 0;
-                p.orientation.z = 0.707;
-                p.orientation.w = -0.707;
-                break;
-              case Action::Left: 
-                p.orientation.x = 0;
-                p.orientation.y = 0;
-                p.orientation.z = 1;
-                p.orientation.w = 0;
-                break;
-              case Action::Right:
-                p.orientation.x = 0;
-                p.orientation.y = 0;
-                p.orientation.z = 0;
-                p.orientation.w = 1; 
-                break;
-            //
-              case Action::Wait:
-                if (i < solution[a].states.size() - 1) {
-                  time++;
-                  continue;
-                }
-                break;
-            }
-                        
-            double x = r_scalex(solution[a].states[i].first.x);
-            double y = r_scaley(solution[a].states[i].first.y);
-            p.position.x = x;
-            p.position.y = y;
-            p.position.z = time * 0.001;
-
-            plan.poses.push_back(p);
-            time = 1;
-          }
->>>>>>> 41dea2673a719a778745ba736659f73ef44d1795
 
               plan.poses.push_back(p);
               time = 1;
