@@ -361,9 +361,4 @@ class MushrCoordination {
 };
 }
 
-<<<<<<< HEAD
 #endif // MUSHR_COORDINATION_H
-=======
-
-#endif // MUSHR_COORDINATION_H
->>>>>>> 41dea2673a719a778745ba736659f73ef44d1795
