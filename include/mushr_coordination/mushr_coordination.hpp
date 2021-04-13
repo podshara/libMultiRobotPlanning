@@ -6,6 +6,7 @@
 #include <string>
 #include <utility>
 #include <yaml-cpp/yaml.h>
+#include <math.h>
 
 #include <boost/functional/hash.hpp>
 #include <boost/program_options.hpp>
@@ -262,8 +263,8 @@ class MushrCoordination {
             visualization_msgs::Marker drop;
             double marker_size = 0.25; 
             for (size_t i = 0; i < m_goal_pose.size(); i++) {
-              if (m_goal_pose[i][1].first == solution[j].states.back().first.x &&
-                  m_goal_pose[i][1].second == solution[j].states.back().first.y) {
+              if (fabs(scalex(m_goal_pose[i][1].first) - solution[j].states.back().first.x) < 0.0001 &&
+                  fabs(scaley(m_goal_pose[i][1].second) - solution[j].states.back().first.y) < 0.0001) {
                 create_marker(&pick, &mkid, m_goal_pose[i][0].first, m_goal_pose[i][0].second, color[a%num_c][0], color[a%num_c][1], color[a%num_c][2], marker_size);
                 create_marker(&drop, &mkid, m_goal_pose[i][1].first, m_goal_pose[i][1].second, color[a%num_c][0], color[a%num_c][1], color[a%num_c][2], marker_size);
 
@@ -292,6 +293,11 @@ class MushrCoordination {
       marker->pose.position.x = x;
       marker->pose.position.y = y;
       marker->pose.position.z = 0;
+
+      marker->pose.orientation.x = 0;
+      marker->pose.orientation.y = 0;
+      marker->pose.orientation.z = 0;
+      marker->pose.orientation.w = 1;
 
       marker->color.r = r;
       marker->color.g = g;
