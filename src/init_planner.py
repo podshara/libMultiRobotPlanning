@@ -54,9 +54,9 @@ if __name__ == "__main__":
     goalmsg = GoalPoseArray()
     goalmsg.header.frame_id = "/map"
     goalmsg.header.stamp = now
-    goalmsg.scale = 1
-    goalmsg.minx = 0
-    goalmsg.miny = 0
+    goalmsg.scale = 0.8
+    goalmsg.minx = -2
+    goalmsg.miny = -2
     goalmsg.maxx = 15
     goalmsg.maxy = 15
     for i in range(gcount):
